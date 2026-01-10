@@ -6,51 +6,7 @@ import Link from "next/link";
 import { Play, ArrowRight, BookOpen, Sparkles, Search, Headphones } from "lucide-react";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
-
-// --- COMPOSANT CIEL ÉTOILÉ (CORRIGÉ) ---
-const StarrySky = () => {
-  const [stars, setStars] = useState<Array<{ id: number, left: string, top: string, size: number, delay: string, duration: string }>>([]);
-
-  useEffect(() => {
-    // On génère les étoiles seulement côté client pour éviter l'erreur d'hydratation
-    const newStars = Array.from({ length: 50 }).map((_, i) => ({
-      id: i,
-      left: `${Math.random() * 100}%`,
-      top: `${Math.random() * 100}%`,
-      size: Math.random() * 2 + 1,
-      delay: `${Math.random() * 5}s`,
-      duration: `${Math.random() * 3 + 2}s`
-    }));
-    setStars(newStars);
-  }, []);
-
-  return (
-    // CORRECTION 1 : La couleur de fond est DANS ce composant (-z-10)
-    <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-[#020617]">
-      {/* 1. Lueurs d'ambiance spécifiques à l'Accueil (Emerald & Blue) */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px]" />
-
-      {/* 2. Les Étoiles Scintillantes */}
-      {stars.map((star) => (
-        <div
-          key={star.id}
-          className="absolute rounded-full bg-white shadow-[0_0_2px_rgba(255,255,255,0.8)] animate-pulse"
-          style={{
-            left: star.left,
-            top: star.top,
-            width: star.size,
-            height: star.size,
-            animationDelay: star.delay,
-            animationDuration: star.duration,
-            opacity: 0.7
-          }}
-        />
-      ))}
-    </div>
-  );
-};
+import StarrySky from "@/components/StarrySky"; // Import du composant externe
 
 export default function Home() {
   const featuredReciters = POPULAR_RECITERS.slice(0, 4);
@@ -63,10 +19,9 @@ export default function Home() {
   ];
 
   return (
-    // CORRECTION 2 : On a RETIRÉ "bg-[#020617]" d'ici pour laisser voir les étoiles
     <div className="min-h-screen text-white selection:bg-emerald-500/30 relative">
 
-      {/* Fond Global avec Étoiles */}
+      {/* Fond Global avec Étoiles (Composant Externe) */}
       <StarrySky />
 
       <main className="px-4 pt-24 md:pt-12 md:px-8 max-w-7xl mx-auto space-y-20 pb-20 relative z-10">
@@ -78,39 +33,30 @@ export default function Home() {
           transition={{ duration: 0.6 }}
           className="relative p-8 md:p-16 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl bg-gradient-to-b from-white/5 to-transparent"
         >
-          {/* Effets internes au Hero */}
-          <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-emerald-500/20 blur-[100px] rounded-full animate-pulse" />
-          <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-blue-500/20 blur-[80px] rounded-full" />
+          {/* Effets internes au Hero (Optimisés pour mobile : retrait de animate-pulse et réduction du flou) */}
+          <div className="absolute top-0 right-0 w-[200px] md:w-[300px] h-[200px] md:h-[300px] bg-emerald-500/20 blur-[60px] md:blur-[100px] rounded-full" />
+          <div className="absolute bottom-0 left-0 w-[150px] md:w-[200px] h-[150px] md:h-[200px] bg-blue-500/20 blur-[50px] md:blur-[80px] rounded-full" />
 
           <div className="relative z-10 flex flex-col items-center text-center max-w-3xl mx-auto space-y-8">
 
-            {/* --- AJOUT : LOGO ANIMÉ --- */}
+            {/* --- LOGO (FIXE) --- */}
             <motion.div
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
               className="relative mb-2"
             >
-              {/* Petit halo lumineux derrière le logo */}
+              {/* Petit halo lumineux derrière le logo (Statique pour perf) */}
               <div className="absolute inset-0 bg-emerald-500/20 blur-2xl rounded-full scale-150" />
 
-              {/* Conteneur pour l'animation de flottement continu */}
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              >
-                <Image
-                  src="/logo.png"
-                  alt="Logo"
-                  width={120} // Ajuste la taille ici (ex: 100, 120, 150)
-                  height={120}
-                  className="object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                />
-              </motion.div>
+              {/* Logo sans animation de flottement */}
+              <Image
+                src="/logo.png"
+                alt="Logo"
+                width={120}
+                height={120}
+                className="object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] relative z-10"
+              />
             </motion.div>
             {/* ------------------------- */}
 
@@ -134,18 +80,18 @@ export default function Home() {
               <Link
                 href="/audio"
                 className="
-    flex items-center justify-center gap-3 
-    rounded-full px-6 py-3 md:px-8 md:py-4
-    bg-gradient-to-r from-blue-600/80 to-emerald-500/80 
-    backdrop-blur-md 
-    border border-white/20 
-    text-white font-bold 
-    shadow-[0_0_30px_-5px_rgba(37,99,235,0.4)] 
-    transition-all duration-300 
-    hover:scale-105 
-    hover:shadow-[0_0_40px_-5px_rgba(16,185,129,0.5)] 
-    hover:from-blue-600 hover:to-emerald-500 hover:border-white/40
-  "
+                  flex items-center justify-center gap-3 
+                  rounded-full px-6 py-3 md:px-8 md:py-4
+                  bg-gradient-to-r from-blue-600/80 to-emerald-500/80 
+                  backdrop-blur-md 
+                  border border-white/20 
+                  text-white font-bold 
+                  shadow-[0_0_30px_-5px_rgba(37,99,235,0.4)] 
+                  transition-all duration-300 
+                  hover:scale-105 
+                  hover:shadow-[0_0_40px_-5px_rgba(16,185,129,0.5)] 
+                  hover:from-blue-600 hover:to-emerald-500 hover:border-white/40
+                "
               >
                 <Play size={20} fill="currentColor" />
                 Commencer l'écoute
@@ -235,6 +181,7 @@ export default function Home() {
 
         {/* --- 4. RECHERCHE --- */}
         <section className="relative py-12">
+          {/* Optimisation performance : suppression de l'animation sur le flou de fond ici aussi si nécessaire, ou réduction de la taille */}
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-blue-500/5 to-purple-500/5 rounded-3xl blur-3xl -z-10" />
           <div className="max-w-2xl mx-auto text-center space-y-6">
             <h2 className="text-2xl md:text-3xl font-bold">Vous cherchez quelque chose de précis ?</h2>
