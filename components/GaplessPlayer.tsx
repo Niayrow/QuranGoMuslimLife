@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Play, Pause, SkipForward, SkipBack, Loader2, PlayCircle, Languages, Type, Repeat1 } from "lucide-react";
+import { Play, Pause, SkipForward, SkipBack, Loader2, PlayCircle, Languages, Type, Repeat1, Repeat, X, Check } from "lucide-react";
 import { useAudio } from "@/context/AudioContext";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -35,7 +35,13 @@ export default function GaplessPlayer({ surahId, reciter, chapters }: GaplessPla
     const [currentAyahNum, setCurrentAyahNum] = useState<number>(-1);
     const [isLoading, setIsLoading] = useState(true);
     const [isPhonetic, setIsPhonetic] = useState(false);
+
     const [isVerseLooping, setIsVerseLooping] = useState(false);
+    const [isABLooping, setIsABLooping] = useState(false);
+    const [showABMenu, setShowABMenu] = useState(false);
+    const [loopStartVerse, setLoopStartVerse] = useState<number>(1);
+    const [loopEndVerse, setLoopEndVerse] = useState<number>(1);
+
     const [isPlayerReady, setIsPlayerReady] = useState(false);
 
     const activeVerseRef = useRef<HTMLDivElement | null>(null);
@@ -50,32 +56,19 @@ export default function GaplessPlayer({ surahId, reciter, chapters }: GaplessPla
 
     const showBismillahHeader = surahId !== 1 && surahId !== 9;
 
-    // --- MASQUER LE HEADER GLOBAL ET LA NAVBAR ---
+    // --- LOGIQUE DE NAVIGATION MOBILE (RÉTABLIE) ---
     useEffect(() => {
-        // 1. On sélectionne le Header Mobile et la Navbar du bas
-        // On essaie plusieurs sélecteurs courants pour la navbar (balise <nav> ou classe fixed bottom-0)
-        const elementsToHide = [
-            document.querySelector('.fixed.top-0.z-40.md\\:hidden'), // Header Mobile
-        ];
+        // Suppression de l'injection CSS qui cachait la navbar
+        // On ne cache plus que le header mobile spécifique s'il existe encore
+        const headerMobile = document.querySelector('.fixed.top-0.z-40.md\\:hidden') as HTMLElement;
+        if (headerMobile) headerMobile.style.display = 'none';
 
-        // On filtre les éléments trouvés (non null)
-        const validElements = elementsToHide.filter(el => el !== null) as HTMLElement[];
-
-        // On sauvegarde l'état initial pour le restaurer après
-        const originalDisplays = validElements.map(el => el.style.display);
-
-        // On masque tout
-        validElements.forEach(el => el.style.display = 'none');
-
-        // Nettoyage : On réaffiche tout quand on quitte ce composant
         return () => {
-            validElements.forEach((el, index) => {
-                el.style.display = originalDisplays[index];
-            });
+            if (headerMobile) headerMobile.style.display = '';
         };
     }, []);
 
-    // --- NAVIGATION AUTO ---
+    // --- NAVIGATION AUTO & CHARGEMENT (Inchangé) ---
     useEffect(() => {
         if (!isPlayerReady) return;
         if (currentTrack && currentTrack.reciter.id === reciter.id && currentTrack.surah.id !== surahId) {
@@ -83,7 +76,6 @@ export default function GaplessPlayer({ surahId, reciter, chapters }: GaplessPla
         }
     }, [currentTrack, reciter.id, surahId, router, isPlayerReady]);
 
-    // --- CHARGEMENT ---
     useEffect(() => {
         const loadData = async () => {
             setIsPlayerReady(false);
@@ -112,6 +104,7 @@ export default function GaplessPlayer({ surahId, reciter, chapters }: GaplessPla
                         if (mergedVerses[0].transliteration.includes(BASMALAH_EN)) mergedVerses[0].transliteration = mergedVerses[0].transliteration.replace(BASMALAH_EN, "").trim();
                     }
                     setVerses(mergedVerses);
+                    setLoopEndVerse(versesCount);
                 }
 
                 const folderName = getReciterFolder(reciter.id);
@@ -169,9 +162,9 @@ export default function GaplessPlayer({ surahId, reciter, chapters }: GaplessPla
         loadData();
     }, [surahId, reciter]);
 
-    // --- BOUCLE VERSET ---
+    // --- BOUCLES (Inchangé) ---
     useEffect(() => {
-        if (!isVerseLooping || timestamps.length === 0) return;
+        if (!isVerseLooping || isABLooping || timestamps.length === 0) return;
         const timeInMs = currentTime * 1000;
         const currentSegment = timestamps.find(t => t.verseNum === currentAyahNum);
         if (currentSegment) {
@@ -179,9 +172,21 @@ export default function GaplessPlayer({ surahId, reciter, chapters }: GaplessPla
                 seek(currentSegment.start / 1000);
             }
         }
-    }, [currentTime, isVerseLooping, currentAyahNum, timestamps, seek]);
+    }, [currentTime, isVerseLooping, isABLooping, currentAyahNum, timestamps, seek]);
 
-    // --- SYNCHRO VISUELLE ---
+    useEffect(() => {
+        if (!isABLooping || timestamps.length === 0) return;
+        const timeInMs = currentTime * 1000;
+        const startSegment = timestamps.find(t => t.verseNum === loopStartVerse);
+        const endSegment = timestamps.find(t => t.verseNum === loopEndVerse);
+        if (startSegment && endSegment) {
+            if (timeInMs >= endSegment.end) {
+                seek(startSegment.start / 1000);
+                setCurrentAyahNum(loopStartVerse);
+            }
+        }
+    }, [currentTime, isABLooping, loopStartVerse, loopEndVerse, timestamps, seek]);
+
     useEffect(() => {
         if (timestamps.length === 0) return;
         const timeInMs = currentTime * 1000;
@@ -202,6 +207,23 @@ export default function GaplessPlayer({ surahId, reciter, chapters }: GaplessPla
         else if (activeVerseRef.current) activeVerseRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }, [currentAyahNum]);
 
+    const activateABLoop = () => {
+        setIsABLooping(true);
+        setIsVerseLooping(false);
+        setShowABMenu(false);
+        skipToVerse(loopStartVerse);
+    };
+
+    const handleInputChange = (type: 'start' | 'end', val: string) => {
+        const num = parseInt(val);
+        if (isNaN(num)) return;
+        if (type === 'start') {
+            setLoopStartVerse(Math.max(1, Math.min(num, loopEndVerse)));
+        } else {
+            setLoopEndVerse(Math.max(loopStartVerse, Math.min(num, verses.length)));
+        }
+    };
+
     if (isLoading) return (
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-emerald-400 gap-4">
             <Loader2 className="animate-spin w-10 h-10" />
@@ -219,32 +241,34 @@ export default function GaplessPlayer({ surahId, reciter, chapters }: GaplessPla
                 </Link>
             </div>
 
-            {/* TOGGLE PHONÉTIQUE */}
+            {/* TOGGLE MODE */}
             <div className="flex justify-center mb-8 sticky top-32 z-30">
                 <button onClick={() => setIsPhonetic(!isPhonetic)} className="flex items-center gap-2 bg-[#0f172a]/80 backdrop-blur-md border border-white/10 px-6 py-2 rounded-full text-sm font-bold shadow-lg hover:border-emerald-500/50 transition-all group">
                     {isPhonetic ? <><Languages size={16} className="text-emerald-400" /><span className="text-white">Mode Phonétique</span></> : <><Type size={16} className="text-emerald-400" /><span className="text-white">Mode Arabe</span></>}
                 </button>
             </div>
 
-            {/* BISMILLAH */}
-            {showBismillahHeader && (
-                <div ref={bismillahRef} className={`text-center mb-12 py-8 font-serif text-3xl md:text-4xl transition-all duration-500 rounded-3xl ${currentAyahNum === 0 ? "text-emerald-400 scale-110 bg-white/5 shadow-[0_0_30px_rgba(16,185,129,0.1)]" : "text-emerald-500/60 opacity-80"}`}>
-                    {isPhonetic ? "Bismillaahir Rahmaanir Raheem" : "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ"}
-                </div>
-            )}
-
-            {/* LISTE VERSETS */}
+            {/* TEXTE CORAN */}
             <div className={`space-y-8 ${isPhonetic ? "text-left ltr" : "text-right rtl"}`} dir={isPhonetic ? "ltr" : "rtl"}>
+                {showBismillahHeader && (
+                    <div ref={bismillahRef} className={`text-center mb-12 py-8 font-serif text-3xl md:text-4xl transition-all duration-500 rounded-3xl ${currentAyahNum === 0 ? "text-emerald-400 scale-110 bg-white/5 shadow-[0_0_30px_rgba(16,185,129,0.1)]" : "text-emerald-500/60 opacity-80"}`}>
+                        {isPhonetic ? "Bismillaahir Rahmaanir Raheem" : "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ"}
+                    </div>
+                )}
                 {verses.map((verse) => {
                     const vNum = verse.numberInSurah;
                     const isActive = vNum === currentAyahNum;
+                    const isInLoopRange = isABLooping && vNum >= loopStartVerse && vNum <= loopEndVerse;
                     return (
-                        <div key={vNum} ref={isActive ? activeVerseRef : null} onClick={() => skipToVerse(vNum)} className={`relative p-6 rounded-3xl transition-all duration-500 cursor-pointer group ${isActive ? "bg-white/5 backdrop-blur-md border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.1)] scale-105 my-8" : "border border-transparent hover:bg-white/5"}`}>
+                        <div key={vNum} ref={isActive ? activeVerseRef : null} onClick={() => skipToVerse(vNum)}
+                            className={`relative p-6 rounded-3xl transition-all duration-500 cursor-pointer group 
+                             ${isActive ? "bg-white/5 backdrop-blur-md border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.1)] scale-105 my-8"
+                                    : isInLoopRange ? "bg-emerald-500/5 border border-emerald-500/10" : "border border-transparent hover:bg-white/5"}`}>
                             <p className={`leading-[2.2] transition-all ${isPhonetic ? "font-sans text-xl md:text-2xl text-slate-200" : "font-serif text-3xl md:text-4xl text-white"} ${isActive ? "text-white drop-shadow-md" : isPhonetic ? "text-slate-300" : "text-slate-400"}`}>
                                 {isPhonetic ? verse.transliteration : verse.text}
                             </p>
                             <div className={`flex items-center justify-between mt-4 ${isPhonetic ? "" : "flex-row-reverse"}`}>
-                                <span className={`text-xs font-bold px-3 py-1 rounded-full ${isActive ? "bg-emerald-500 text-black" : "bg-white/10 text-slate-500"}`}>Verset {vNum}</span>
+                                <span className={`text-xs font-bold px-3 py-1 rounded-full ${isActive || isInLoopRange ? "bg-emerald-500 text-black" : "bg-white/10 text-slate-500"}`}>Verset {vNum}</span>
                                 <button className={`opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? "text-emerald-400" : "text-slate-500"}`}><PlayCircle size={20} /></button>
                             </div>
                         </div>
@@ -252,36 +276,46 @@ export default function GaplessPlayer({ surahId, reciter, chapters }: GaplessPla
                 })}
             </div>
 
-            {/* BARRE FLOTTANTE CONTROLE VERSETS */}
-            <div className="fixed bottom-36 md:bottom-24 left-1/2 -translate-x-1/2 w-full max-w-lg z-30 px-4 pointer-events-none">
-                <div className="bg-black/20 backdrop-blur-sm rounded-full border border-white/5 p-2 md:p-3 flex flex-col items-center gap-1 pointer-events-auto transition-all hover:bg-black/40">
+            {/* --- BARRE DE NAVIGATION PAR VERSET (REPOSITIONNÉE) --- */}
+            <div className="fixed bottom-38 md:bottom-28 left-1/2 -translate-x-1/2 w-[90%] max-w-lg z-[90] pointer-events-none">
 
-                    <div className="text-[8px] md:text-[9px] uppercase tracking-widest text-emerald-400/80 font-bold">
-                        Navigation Verset
+                {/* MENU POPUP A-B */}
+                {showABMenu && (
+                    <div className="absolute bottom-full left-0 right-0 mb-4 bg-[#0f172a]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl animate-in fade-in zoom-in duration-200 pointer-events-auto">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Boucle A-B</span>
+                            <button onClick={() => setShowABMenu(false)} className="text-slate-400 hover:text-white"><X size={16} /></button>
+                        </div>
+                        <div className="flex gap-4 mb-4">
+                            <div className="flex-1">
+                                <label className="text-[10px] text-slate-400 block mb-1">DÉBUT</label>
+                                <input type="number" value={loopStartVerse} onChange={(e) => handleInputChange('start', e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-lg p-2 text-center text-white focus:border-emerald-500 outline-none" />
+                            </div>
+                            <div className="flex-1">
+                                <label className="text-[10px] text-slate-400 block mb-1">FIN</label>
+                                <input type="number" value={loopEndVerse} onChange={(e) => handleInputChange('end', e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-lg p-2 text-center text-white focus:border-emerald-500 outline-none" />
+                            </div>
+                        </div>
+                        <button onClick={activateABLoop} className="w-full py-2 bg-emerald-500 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2">
+                            <Check size={16} /> Lancer la boucle
+                        </button>
+                    </div>
+                )}
+
+                {/* BARRE PRINCIPALE */}
+                <div className="bg-black/60 backdrop-blur-md rounded-full border border-white/10 p-2 flex items-center justify-between pointer-events-auto shadow-2xl">
+                    <div className="flex items-center gap-1">
+                        <button onClick={() => { setIsVerseLooping(!isVerseLooping); setIsABLooping(false); }} className={`p-2 rounded-full transition-all ${isVerseLooping ? "text-emerald-400 bg-emerald-400/10" : "text-slate-400"}`}><Repeat1 size={20} /></button>
+                        <button onClick={() => skipToVerse(Math.max(1, currentAyahNum - 1))} className="p-2 text-slate-300"><SkipBack size={20} /></button>
                     </div>
 
-                    <div className="flex items-center justify-between w-full gap-4 px-4">
-                        <button onClick={() => skipToVerse(Math.max(1, currentAyahNum - 1))} className="text-slate-300 hover:text-white transition-colors active:scale-90">
-                            <SkipBack size={20} />
-                        </button>
+                    <button onClick={togglePlay} className="w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center border border-white/10">
+                        {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}
+                    </button>
 
-                        <div className="flex items-center gap-6">
-                            <button
-                                onClick={() => setIsVerseLooping(!isVerseLooping)}
-                                className={`transition-all ${isVerseLooping ? "text-emerald-400 scale-110 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "text-slate-400 hover:text-slate-200"}`}
-                                title="Boucler Verset"
-                            >
-                                <Repeat1 size={20} />
-                            </button>
-
-                            <button onClick={togglePlay} className="w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all active:scale-95 border border-white/10">
-                                {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
-                            </button>
-                        </div>
-
-                        <button onClick={() => skipToVerse(Math.min(verses.length, currentAyahNum + 1))} className="text-slate-300 hover:text-white transition-colors active:scale-90">
-                            <SkipForward size={20} />
-                        </button>
+                    <div className="flex items-center gap-1">
+                        <button onClick={() => skipToVerse(Math.min(verses.length, currentAyahNum + 1))} className="p-2 text-slate-300"><SkipForward size={20} /></button>
+                        <button onClick={() => isABLooping ? setIsABLooping(false) : setShowABMenu(!showABMenu)} className={`p-2 rounded-full transition-all ${isABLooping ? "text-blue-400 bg-blue-400/10" : "text-slate-400"}`}><Repeat size={20} /></button>
                     </div>
                 </div>
             </div>

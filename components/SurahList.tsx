@@ -78,11 +78,11 @@ export default function SurahList({ chapters, reciterId, serverUrl, isSyncEnable
                     <Fragment key={chapter.id}>
                         {/* EN-TÊTE JUZ */}
                         {showJuzHeader && currentJuz > 0 && (
-                            <div className="sticky top-0 z-30 py-3 -mx-2 px-2 backdrop-blur-xl bg-[#0f172a]/95 border-b border-emerald-500/10 transition-all">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-6 w-1 bg-gradient-to-b from-emerald-400 to-blue-500 rounded-full"></div>
-                                    <span className="text-emerald-400 font-bold text-sm flex items-center gap-2 uppercase tracking-wider">
-                                        <Layers size={14} />
+                            <div className=" z-30 py-3 -mx-2 px-2 backdrop-blur-xl bg-[#0f172a]/95 border-b border-emerald-500/10 transition-all rounded-b-lg rounded-t-lg">
+                                <div className="flex items-center gap-3 ">
+                                    <div className="h-6 w-1 bg-gradient-to-b from-emerald-400 to-blue-500 rounded-full "></div>
+                                    <span className="text-emerald-400  font-bold text-sm flex items-center gap-2 uppercase tracking-wider ">
+                                        <Layers size={16} />
                                         Juz {currentJuz}
                                     </span>
                                 </div>

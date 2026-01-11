@@ -38,7 +38,7 @@ export default function Footer() {
                 <nav className="flex flex-wrap justify-center gap-x-8 gap-y-4 mb-12">
                     {[
                         { name: "Accueil", href: "/" },
-                        { name: "Lire le Coran", href: "/coran" },
+                        { name: "Lire le Coran", href: "/quran" },
                         { name: "Écoute Audio", href: "/audio" },
                         { name: "Contact", href: "#" },
 

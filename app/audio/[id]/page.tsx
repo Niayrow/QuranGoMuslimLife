@@ -114,7 +114,7 @@ export default async function ReciterPage({
 
             <main className="relative z-10">
                 <div className="relative pt-28 pb-12 px-6 overflow-hidden">
-                    <div className="absolute top-6 left-6 z-20">
+                    <div className="absolute top-18 left-6 z-20 md:left-12 md:top-10">
                         <Link href="/audio" className="flex items-center gap-2 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 text-white px-4 py-2 rounded-full transition-all text-sm font-medium group shadow-lg">
                             <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
                             Retour
