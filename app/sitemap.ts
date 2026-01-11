@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { POPULAR_RECITERS } from '@/lib/constants';
 
 // ⚠️ REMPLACEZ PAR VOTRE VRAI NOM DE DOMAINE
-const BASE_URL = 'https://gomuslimlife.com';
+const BASE_URL = 'https://quran.gomuslimlife.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
     // 1. Pages Statiques
