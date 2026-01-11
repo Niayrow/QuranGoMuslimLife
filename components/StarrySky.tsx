@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 
 export default function StarrySky() {
-    // Génération des étoiles (stable)
-    const stars = useMemo(() => {
-        return Array.from({ length: 50 }).map((_, i) => ({
+    // On initialise avec un tableau vide pour éviter le mismatch serveur/client
+    const [stars, setStars] = useState<any[]>([]);
+
+    useEffect(() => {
+        // Cette génération ne se lance que sur le navigateur (Client)
+        const generatedStars = Array.from({ length: 50 }).map((_, i) => ({
             id: i,
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
@@ -13,14 +16,15 @@ export default function StarrySky() {
             delay: `${Math.random() * 5}s`,
             duration: `${Math.random() * 3 + 2}s`
         }));
+        setStars(generatedStars);
     }, []);
 
     return (
         <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-            {/* Fond Nuit Profonde */}
+            {/* Fond Nuit Profonde (Statique, donc pas de problème) */}
             <div className="absolute inset-0 bg-gradient-to-b from-[#020617] via-[#0f172a] to-[#1e293b]" />
 
-            {/* Étoiles */}
+            {/* Étoiles (Ne s'affichent qu'une fois le composant monté sur le client) */}
             {stars.map((star) => (
                 <div
                     key={star.id}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, Github, Twitter, Instagram } from "lucide-react";
+import { Heart, Github, Twitter, Instagram, } from "lucide-react";
 
 export default function Footer() {
     const currentYear = new Date().getFullYear();
@@ -41,6 +41,7 @@ export default function Footer() {
                         { name: "Lire le Coran", href: "/coran" },
                         { name: "Écoute Audio", href: "/audio" },
                         { name: "Contact", href: "#" },
+
                     ].map((link) => (
                         <Link
                             key={link.name}
@@ -50,9 +51,27 @@ export default function Footer() {
                             {link.name}
                             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-emerald-500 transition-all group-hover:w-full" />
                         </Link>
+
                     ))}
                 </nav>
+                {/* Réseaux Sociaux */}
+                <div className="flex gap-1 justify-center   mb-12 ">
+                    {[
+                        { icon: Twitter, href: "https://x.com/gomuslimlife" },
+                        { icon: Instagram, href: "https://www.instagram.com/gomuslimlife/" },
+                        { icon: Github, href: "https://github.com/Niayrow/QuranGoMuslimLife" },
 
+                    ].map((social, i) => (
+                        <Link
+                            key={i}
+                            href={social.href}
+                            target="_blank"
+                            className="p-2.5 rounded-full bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-110"
+                        >
+                            <social.icon size={16} />
+                        </Link>
+                    ))}
+                </div>
                 {/* 3. Bas de page */}
                 <div className="w-full border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
 
@@ -67,23 +86,7 @@ export default function Footer() {
                         </div>
                     </div>
 
-                    {/* Réseaux Sociaux */}
-                    <div className="flex gap-3">
-                        {[
-                            { icon: Twitter, href: "https://x.com/gomuslimlife" },
-                            { icon: Instagram, href: "https://www.instagram.com/gomuslimlife/" },
-                            { icon: Github, href: "https://github.com/Niayrow/QuranGoMuslimLife" },
-                        ].map((social, i) => (
-                            <Link
-                                key={i}
-                                href={social.href}
-                                target="_blank"
-                                className="p-2.5 rounded-full bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-110"
-                            >
-                                <social.icon size={16} />
-                            </Link>
-                        ))}
-                    </div>
+
                 </div>
             </div>
         </footer>

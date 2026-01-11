@@ -9,13 +9,41 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Mic2, Music4, Sparkles, BookOpenCheck } from "lucide-react";
 import { notFound } from "next/navigation";
+import { Metadata } from "next"; // IMPORTANT POUR LE SEO
 
+// --- GÉNÉRATION STATIQUE DES ROUTES (Pour que ça charge vite) ---
 export async function generateStaticParams() {
     return POPULAR_RECITERS.map((reciter) => ({
         id: reciter.id.toString(),
     }));
 }
 
+// --- SEO DYNAMIQUE (Titre, Description, Image de partage) ---
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+    const { id } = await params;
+    const reciter = POPULAR_RECITERS.find((r) => r.id.toString() === id);
+
+    if (!reciter) {
+        return { title: "Récitateur introuvable" };
+    }
+
+    return {
+        title: `Écouter ${reciter.name} - Coran Complet MP3`,
+        description: `Écoutez la récitation du Saint Coran par ${reciter.name} (${reciter.style}). Audio haute qualité, téléchargement et lecture synchronisée disponible sur GoMuslimLife.`,
+        openGraph: {
+            title: `${reciter.name} - Saint Coran Audio`,
+            description: `Découvrez la magnifique récitation de ${reciter.name}.`,
+            images: [{
+                url: reciter.image,
+                width: 800,
+                height: 800,
+                alt: reciter.name,
+            }],
+        },
+    };
+}
+
+// --- COMPOSANT PAGE PRINCIPAL ---
 export default async function ReciterPage({
     params,
     searchParams
@@ -32,7 +60,7 @@ export default async function ReciterPage({
     const { chapters } = await getChapters();
     const isSyncEnabled = reciter.id === 87;
 
-    // --- MODE LECTURE IMMERSIVE ---
+    // --- MODE LECTURE IMMERSIVE (Quand ?surah=X est présent et synchro active) ---
     if (surah && isSyncEnabled) {
         const surahId = parseInt(surah);
         return (
@@ -40,7 +68,7 @@ export default async function ReciterPage({
                 <StarrySky />
                 <main className="relative z-10 pt-24 md:pt-8 px-4">
 
-                    {/* HEADER FIXE (Mobile) */}
+                    {/* HEADER FIXE (Mobile) & FLOTTANT (Desktop) */}
                     <div className="
                         max-w-4xl mx-auto flex items-center justify-between z-50
                         fixed top-0 left-0 right-0 p-3 bg-[#020617]/95 backdrop-blur-xl border-b border-white/10 shadow-2xl rounded-none
@@ -65,6 +93,7 @@ export default async function ReciterPage({
                         </div>
                     </div>
 
+                    {/* LECTEUR SYNCHRONISÉ */}
                     <GaplessPlayer
                         surahId={surahId}
                         reciter={reciter}
@@ -75,12 +104,12 @@ export default async function ReciterPage({
         );
     }
 
-    // --- MODE PROFIL (Classique) ---
+    // --- MODE PROFIL CLASSIQUE (Liste des sourates) ---
     return (
         <div className="min-h-screen text-white relative">
             <StarrySky />
 
-            {/* AJOUT DU TUTORIEL */}
+            {/* POPUP TUTORIEL (S'affiche une seule fois pour Nasser) */}
             <SyncTutorial reciterId={reciter.id} />
 
             <main className="relative z-10">
