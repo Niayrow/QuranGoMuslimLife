@@ -7,7 +7,8 @@ interface ReciterInfo {
     id: number;
     name: string;
     image: string;
-    serverUrl: string;
+    server: string;
+    style?: string; // Ajout optionnel pour éviter les erreurs de typage
 }
 
 interface Track {
@@ -35,7 +36,6 @@ interface AudioContextType {
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export function AudioProvider({ children }: { children: React.ReactNode }) {
-    // États
     const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
     const [playlist, setPlaylist] = useState<Chapter[]>([]);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -45,51 +45,33 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const [volume, setVolumeState] = useState(1);
     const [isLoop, setIsLoop] = useState(false);
 
-    // Refs (Pour garder l'accès aux valeurs à jour dans les event listeners sans re-render)
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const stateRef = useRef({
-        playlist,
-        currentTrack,
-        isLoop,
-        volume
-    });
+    const stateRef = useRef({ playlist, currentTrack, isLoop, volume });
 
-    // Mettre à jour les refs quand le state change
+    // Maintient stateRef à jour pour les callbacks (évite les problèmes de closure)
     useEffect(() => {
         stateRef.current = { playlist, currentTrack, isLoop, volume };
-        if (audioRef.current) {
-            audioRef.current.volume = volume;
-        }
+        if (audioRef.current) audioRef.current.volume = volume;
     }, [playlist, currentTrack, isLoop, volume]);
 
-    // --- FONCTION DE LECTURE URL (Interne) ---
     const playUrl = useCallback((url: string) => {
         if (!audioRef.current) return;
-
-        // On évite l'erreur "The play() request was interrupted"
-        // en s'assurant que l'audio est prêt ou stoppé proprement
         audioRef.current.src = url;
-        audioRef.current.load(); // Force le rechargement propre
-
+        audioRef.current.load();
         const playPromise = audioRef.current.play();
-
         if (playPromise !== undefined) {
             playPromise
                 .then(() => setIsPlaying(true))
                 .catch((e) => {
-                    // On ignore l'erreur d'interruption si on change vite de piste
                     if (e.name !== 'AbortError') console.error("Erreur lecture:", e);
                 });
         }
     }, []);
 
-    // --- LOGIQUE SUIVANT / PRÉCÉDENT ---
     const handleNext = useCallback(() => {
         const { playlist, currentTrack, isLoop } = stateRef.current;
-
         if (!currentTrack || playlist.length === 0) return;
 
-        // Si Loop activé, on replay la même
         if (isLoop && audioRef.current) {
             audioRef.current.currentTime = 0;
             audioRef.current.play();
@@ -100,10 +82,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         if (currentIndex !== -1 && currentIndex < playlist.length - 1) {
             const nextSurah = playlist[currentIndex + 1];
             const reciter = currentTrack.reciter;
-
             setCurrentTrack({ surah: nextSurah, reciter });
             const paddedId = nextSurah.id.toString().padStart(3, '0');
-            playUrl(`${reciter.serverUrl}${paddedId}.mp3`);
+            playUrl(`${reciter.server}${paddedId}.mp3`);
         } else {
             setIsPlaying(false);
         }
@@ -115,7 +96,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
         const currentIndex = playlist.findIndex(c => c.id === currentTrack.surah.id);
 
-        // Si on a écouté plus de 3 sec, on remet au début
+        // Si on est à plus de 3 sec, on recommence la piste au début
         if (audioRef.current && audioRef.current.currentTime > 3) {
             audioRef.current.currentTime = 0;
             return;
@@ -124,14 +105,59 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         if (currentIndex > 0) {
             const prevSurah = playlist[currentIndex - 1];
             const reciter = currentTrack.reciter;
-
             setCurrentTrack({ surah: prevSurah, reciter });
             const paddedId = prevSurah.id.toString().padStart(3, '0');
-            playUrl(`${reciter.serverUrl}${paddedId}.mp3`);
+            playUrl(`${reciter.server}${paddedId}.mp3`);
         }
     }, [playUrl]);
 
-    // --- INITIALISATION AUDIO (Une seule fois !) ---
+    const togglePlay = () => {
+        if (!audioRef.current) return;
+        if (isPlaying) audioRef.current.pause();
+        else audioRef.current.play();
+        setIsPlaying(!isPlaying);
+    };
+
+    // --- MISE EN PLACE DE L'API MEDIA SESSION (Écran de verrouillage) ---
+    useEffect(() => {
+        if (!currentTrack || !('mediaSession' in navigator)) return;
+
+        // 1. Définir les métadonnées (Titre, Image, etc.)
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: `Sourate ${currentTrack.surah.name_simple}`,
+            artist: currentTrack.reciter.name,
+            album: "Quran GoMuslimLife",
+            artwork: [
+                // On met votre logo ici dans différentes tailles pour être sûr qu'il soit pris
+                { src: "/logo.png", sizes: "96x96", type: "image/png" },
+                { src: "/logo.png", sizes: "128x128", type: "image/png" },
+                { src: "/logo.png", sizes: "192x192", type: "image/png" },
+                { src: "/logo.png", sizes: "512x512", type: "image/png" },
+            ]
+        });
+
+        // 2. Lier les actions (Boutons de l'écran de verrouillage)
+        navigator.mediaSession.setActionHandler("play", () => {
+            audioRef.current?.play();
+            setIsPlaying(true);
+        });
+        navigator.mediaSession.setActionHandler("pause", () => {
+            audioRef.current?.pause();
+            setIsPlaying(false);
+        });
+        navigator.mediaSession.setActionHandler("previoustrack", handlePrev);
+        navigator.mediaSession.setActionHandler("nexttrack", handleNext);
+
+        // Optionnel : Permettre de scroller dans la barre de temps native
+        navigator.mediaSession.setActionHandler("seekto", (details) => {
+            if (details.seekTime && audioRef.current) {
+                audioRef.current.currentTime = details.seekTime;
+                setCurrentTime(details.seekTime);
+            }
+        });
+
+    }, [currentTrack, handleNext, handlePrev]);
+
     useEffect(() => {
         audioRef.current = new Audio();
         audioRef.current.preload = "auto";
@@ -144,32 +170,26 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
                 setProgress((audio.currentTime / audio.duration) * 100);
             }
         };
-
-        const handleEnded = () => {
-            // On appelle la logique "Suivant" qui lira les refs à jour
-            handleNext();
-        };
+        const handleEnded = () => handleNext();
 
         audio.addEventListener("timeupdate", updateProgress);
         audio.addEventListener("ended", handleEnded);
+        // Important pour que l'audio continue en background sur mobile
+        audio.addEventListener("play", () => setIsPlaying(true));
+        audio.addEventListener("pause", () => setIsPlaying(false));
 
-        // Cleanup propre
         return () => {
             audio.pause();
             audio.removeEventListener("timeupdate", updateProgress);
             audio.removeEventListener("ended", handleEnded);
-            audio.src = ""; // Libère la ressource
+            audio.src = "";
         };
-    }, []); // <-- Dépendances vides : Ne se relance jamais = Pas de coupure !
-
-    // --- FONCTIONS PUBLIQUES ---
+    }, []); // on mount only
 
     const playTrack = (surah: Chapter, reciter: ReciterInfo, fullPlaylist: Chapter[]) => {
-        // Mise à jour des données
         setPlaylist(fullPlaylist);
         setCurrentTrack({ surah, reciter });
 
-        // Si c'est la même piste qui joue, on toggle juste
         if (currentTrack?.surah.id === surah.id && currentTrack?.reciter.id === reciter.id) {
             if (audioRef.current?.paused) {
                 audioRef.current.play();
@@ -181,20 +201,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
-        // Sinon on lance la nouvelle
         const paddedId = surah.id.toString().padStart(3, '0');
-        const url = `${reciter.serverUrl}${paddedId}.mp3`;
+        const url = `${reciter.server}${paddedId}.mp3`;
         playUrl(url);
-    };
-
-    const togglePlay = () => {
-        if (!audioRef.current) return;
-        if (isPlaying) {
-            audioRef.current.pause();
-        } else {
-            audioRef.current.play();
-        }
-        setIsPlaying(!isPlaying);
     };
 
     const seek = (time: number) => {

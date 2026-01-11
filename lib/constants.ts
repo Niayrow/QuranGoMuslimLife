@@ -1,6 +1,14 @@
 export const POPULAR_RECITERS = [
     // --- Les Incontournables ---
     {
+        id: 87,
+        name: "Nasser Al Qatami",
+        style: "Murattal",
+        image: "/reciters/qatami.jpg",
+        color: "from-sky-500 to-blue-600",
+        server: "https://server6.mp3quran.net/qtm/"
+    },
+    {
         id: 7,
         name: "Mishary Rashid Alafasy",
         style: "Murattal",
@@ -75,14 +83,6 @@ export const POPULAR_RECITERS = [
         image: "/reciters/dosari.jpg",
         color: "from-violet-500 to-purple-800",
         server: "https://server11.mp3quran.net/yasser/"
-    },
-    {
-        id: 87,
-        name: "Nasser Al Qatami",
-        style: "Murattal",
-        image: "/reciters/qatami.jpg",
-        color: "from-sky-500 to-blue-600",
-        server: "https://server6.mp3quran.net/qtm/"
     },
     {
         id: 166,
