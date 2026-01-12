@@ -9,6 +9,30 @@ export const POPULAR_RECITERS = [
         server: "https://server6.mp3quran.net/qtm/"
     },
     {
+        id: 10,
+        name: "Saud Al-Shuraim",
+        style: "Murattal",
+        image: "/reciters/shuraim.jpg",
+        color: "from-cyan-600 to-blue-800",
+        server: "https://server7.mp3quran.net/shur/"
+    },
+    {
+        id: 125,
+        name: "Yasser Al-Dosari",
+        style: "Murattal",
+        image: "/reciters/dosari.jpg",
+        color: "from-violet-500 to-purple-800",
+        server: "https://server11.mp3quran.net/yasser/"
+    },
+    {
+        id: 3,
+        name: "Abdur-Rahman as-Sudais",
+        style: "Murattal",
+        image: "/reciters/sudais.jpg",
+        color: "from-slate-600 to-slate-800",
+        server: "https://server11.mp3quran.net/sds/"
+    },
+    {
         id: 7,
         name: "Mishary Rashid Alafasy",
         style: "Murattal",
@@ -24,23 +48,6 @@ export const POPULAR_RECITERS = [
         color: "from-blue-500 to-indigo-700",
         server: "https://server12.mp3quran.net/maher/"
     },
-    {
-        id: 3,
-        name: "Abdur-Rahman as-Sudais",
-        style: "Murattal",
-        image: "/reciters/sudais.jpg",
-        color: "from-slate-600 to-slate-800",
-        server: "https://server11.mp3quran.net/sds/"
-    },
-    {
-        id: 10,
-        name: "Saud Al-Shuraim",
-        style: "Murattal",
-        image: "/reciters/shuraim.jpg",
-        color: "from-cyan-600 to-blue-800",
-        server: "https://server7.mp3quran.net/shur/"
-    },
-
     // --- Les Classiques (Égypte) ---
     {
         id: 1,
@@ -75,14 +82,6 @@ export const POPULAR_RECITERS = [
         image: "/reciters/shatri.jpg",
         color: "from-red-500 to-rose-700",
         server: "https://server11.mp3quran.net/shatri/"
-    },
-    {
-        id: 125,
-        name: "Yasser Al-Dosari",
-        style: "Murattal",
-        image: "/reciters/dosari.jpg",
-        color: "from-violet-500 to-purple-800",
-        server: "https://server11.mp3quran.net/yasser/"
     },
     {
         id: 166,

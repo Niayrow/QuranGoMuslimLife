@@ -39,8 +39,8 @@ export default function AudioPage() {
                 {/* Grille des Récitateurs */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-40">
                     {POPULAR_RECITERS.map((reciter) => {
-                        // On détecte si c'est Nasser Al Qatami pour afficher le badge
-                        const isSyncAvailable = reciter.id === 87;
+
+                        const isSyncAvailable = reciter.id === 87 || reciter.id === 125 || reciter.id === 10 
 
                         return (
                             <Link

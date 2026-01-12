@@ -58,7 +58,8 @@ export default async function ReciterPage({
     if (!reciter) return notFound();
 
     const { chapters } = await getChapters();
-    const isSyncEnabled = reciter.id === 87;
+    const isSyncEnabled = reciter.id === 87 || reciter.id === 125 || reciter.id === 10 
+
 
     // --- MODE LECTURE IMMERSIVE (Quand ?surah=X est présent et synchro active) ---
     if (surah && isSyncEnabled) {
